@@ -1,11 +1,19 @@
-FROM node:latest
+FROM node:latest as build
 
 WORKDIR /app
 
-COPY package.json ./
+ENV PATH /app/node_modules/.bin:$PATH
 
-RUN npm install
+COPY package.json ./
+COPY package-lock.json ./
+RUN npm ci
 RUN npm install react-scripts@5.0.0 -g
 
-#CMD ["npm", "start"]
-CMD ["npx", "nodemon", "--watch", "src", "--exec", "npm", "start"]
+COPY . ./
+RUN npm-run-build
+
+FROM nginx:stable-alpine
+COPY --from=build /app/build /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
